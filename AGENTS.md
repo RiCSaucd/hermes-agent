@@ -1354,3 +1354,74 @@ not the specific names.
 
 Reviewers should reject new change-detector tests; authors should convert
 them into invariants before re-requesting review.
+
+---
+
+## Cursor Cloud specific instructions
+
+Durable, non-obvious notes for agents working in the Cursor Cloud VM. The
+startup update script already refreshes dependencies, so you normally do
+**not** need to install anything.
+
+### Environment layout
+
+- Python deps are managed by **uv**. The virtualenv lives at `/workspace/.venv`
+  (Python 3.11 — `pyproject.toml` pins `requires-python = ">=3.11,<3.14"`).
+  Activate with `source .venv/bin/activate`. `uv` is at `~/.local/bin/uv`
+  (already on `PATH` via `~/.bashrc`).
+- The startup update script runs `uv sync --extra all --extra dev`, which is the
+  `[all]` + `[dev]` extra set CI installs. Re-run that command manually if deps
+  drift; it is idempotent.
+- Node surfaces (`ui-tui/`, `web/`, `apps/desktop/`, `website/`) are **not**
+  installed by the update script. Set them up on demand per their own
+  `package.json` scripts (see the "TUI Architecture" section) only if your task
+  touches them.
+
+### Lint / typecheck (see `.github/workflows/lint.yml`)
+
+- **Blocking lint is only `ruff check .`** — it enforces the tiny rule set in
+  `[tool.ruff.lint.select]` (currently `PLW1514`). It should pass clean.
+- **`ty check` is advisory, not blocking.** CI runs it with `--exit-zero`; run
+  bare it exits non-zero and prints ~10k diagnostics — that is expected, not an
+  environment failure. Don't treat a non-zero `ty` exit as broken setup.
+
+### Tests
+
+- Always use `scripts/run_tests.sh` (never raw `pytest`) — see the "Testing"
+  section above for why. The full suite is ~17k tests; scope to a directory or
+  file while iterating, e.g. `scripts/run_tests.sh tests/hermes_cli/ -q`.
+- The runner writes `test_durations.json` at the repo root; it is gitignored.
+
+### Running the agent end-to-end (the non-obvious part)
+
+The `hermes` CLI needs a model endpoint. There is **no fully offline mode**, but
+a local OpenAI-compatible server counts and needs no API key (the first-run
+guard treats a custom/local `base_url` as "configured"). To smoke-test the agent
+loop without any provider credential:
+
+1. Run any OpenAI-compatible server on localhost (real local model, or a tiny
+   mock that answers `POST /v1/chat/completions`).
+2. Point `~/.hermes/config.yaml` at it with a **bare custom provider**:
+
+   ```yaml
+   model:
+     provider: custom
+     default: <model-id-the-server-serves>
+     base_url: "http://127.0.0.1:<port>/v1"
+   ```
+
+   Use `provider: custom` + `model.base_url` (not a `model_aliases:` entry) —
+   the interactive `hermes chat` path only honors `model.base_url` for a bare
+   custom provider; alias `base_url` is applied by `hermes -z` one-shot but not
+   by interactive chat.
+3. Best non-interactive check: `hermes -z "your prompt" --usage-file /tmp/u.json`
+   — prints only the final response, exit 0 on success, and writes token/cost
+   accounting (`api_calls`, `provider`, `model`) to the usage file. Interactive
+   equivalent: `hermes chat`.
+
+With a real provider, configure it via `hermes setup` / `hermes model` or a
+provider key in `~/.hermes/.env` instead.
+
+The startup banner warning `Context file AGENTS.md TRUNCATED: … exceeds limit`
+is benign — this AGENTS.md is intentionally large and only the head is loaded
+into context.
