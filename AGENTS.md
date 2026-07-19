@@ -1369,13 +1369,13 @@ startup update script already refreshes dependencies, so you normally do
   (Python 3.11 — `pyproject.toml` pins `requires-python = ">=3.11,<3.14"`).
   Activate with `source .venv/bin/activate`. `uv` is at `~/.local/bin/uv`
   (already on `PATH` via `~/.bashrc`).
-- The startup update script runs `uv sync --extra all --extra dev`, which is the
-  `[all]` + `[dev]` extra set CI installs. Re-run that command manually if deps
-  drift; it is idempotent.
-- Node surfaces (`ui-tui/`, `web/`, `apps/desktop/`, `website/`) are **not**
-  installed by the update script. Set them up on demand per their own
-  `package.json` scripts (see the "TUI Architecture" section) only if your task
-  touches them.
+- The startup update script runs
+  `uv sync --locked --python 3.11 --extra all --extra dev` (CI-parity) and then
+  root `npm install` (npm workspaces: `ui-tui`, `web`, `apps/*`). Both are
+  idempotent. Re-run either manually if deps drift.
+- The Docusaurus docs site (`website/`) is **not** in the root workspaces —
+  install it on demand with `cd website && npm install` only if your task
+  touches docs.
 
 ### Lint / typecheck (see `.github/workflows/lint.yml`)
 
@@ -1425,3 +1425,18 @@ provider key in `~/.hermes/.env` instead.
 The startup banner warning `Context file AGENTS.md TRUNCATED: … exceeds limit`
 is benign — this AGENTS.md is intentionally large and only the head is loaded
 into context.
+
+### Node surfaces (TUI / dashboard / desktop)
+
+Commands live in each package's `package.json`; standard ones:
+
+| Surface | Dev / run | Build | Notes |
+|---|---|---|---|
+| Ink TUI | `hermes --tui` (or `cd ui-tui && npm run dev`) | `cd ui-tui && npm run build` → `ui-tui/dist/entry.js` | Needs a real TTY. |
+| Web dashboard | `hermes dashboard --no-open` (port **9119**) | `cd web && npm run build` → `hermes_cli/web_dist/` (gitignored) | Use `--skip-build` when dist already exists. Loopback injects `window.__HERMES_SESSION_TOKEN__` into the SPA HTML; API calls need `Authorization: Bearer <token>`. `/api/status` is unauthenticated. |
+| Electron desktop | `hermes desktop --source` (after `cd apps/desktop && npm run build`) | `cd apps/desktop && npm run build` | Spawns headless `hermes serve` as the backend. dbus noise in the Cloud VM is harmless. |
+
+ESLint / vitest on these packages currently report pre-existing failures on
+`main` — do not treat those as a broken environment. Prefer `typecheck` +
+`build` + a live run (`hermes --tui` / `hermes dashboard` / `hermes desktop`)
+as the smoke signal.
