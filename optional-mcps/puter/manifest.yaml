@@ -1,0 +1,47 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: puter
+description: Act on Puter cloud resources — files, hosting, workers, apps, and docs.
+source: https://docs.puter.com/mcp/
+
+# Puter ships a remote MCP server with native OAuth over Streamable HTTP.
+# Hermes's MCP client + mcp_oauth_manager handle discovery, PKCE, token
+# exchange, and refresh — nothing to install locally.
+transport:
+  type: http
+  url: https://mcp.puter.com/
+
+auth:
+  type: oauth
+  # No `provider:` — native MCP OAuth (case 1), not a third-party provider
+  # like Google. The MCP client triggers the browser flow on first probe /
+  # first connect.
+
+# Tool surface (from Puter MCP docs, grouped):
+#   Filesystem: fs_write_file, fs_read_file, fs_readdir, fs_mkdir, fs_stat, fs_delete
+#   Hosting:    hosting_create, hosting_list, hosting_get, hosting_update, hosting_delete
+#   Workers:    workers_create, workers_exec, workers_list, workers_get, workers_delete
+#   Apps:       apps_create, apps_check_name, apps_list, apps_get, apps_update, apps_delete
+#   Docs:       puter_docs_index, puter_docs_get
+#   Account:    whoami
+#
+# Leave default_enabled unset so the install-time checklist starts with
+# everything pre-checked — users prune what they don't want.
+
+post_install: |
+  On first connection, Hermes will open a browser to authenticate with Puter.
+  After auth, restart your Hermes session so the Puter tools are loaded.
+
+  Plain-language examples once connected:
+    - "List the files in my Puter home directory."
+    - "Publish the dist folder as a website."
+    - "Deploy this script as a Puter worker and give me the URL."
+
+  For Puter.js app authoring (frontend SDK, User-Pays model, AI/FS/KV APIs),
+  also install the optional skill:
+    hermes skills install official/web-development/puter
+
+  You can re-run the tool checklist any time with:
+    hermes mcp configure puter

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hello Puter</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 40rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+      }
+      #out {
+        white-space: pre-wrap;
+        background: #f4f4f5;
+        padding: 1rem;
+        border-radius: 0.5rem;
+      }
+      footer {
+        margin-top: 2rem;
+        font-size: 0.875rem;
+        color: #52525b;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Hello Puter</h1>
+    <p>Sign in when prompted. Your Puter account covers AI usage (User-Pays).</p>
+    <pre id="out">Loading…</pre>
+    <footer>
+      <a href="https://developer.puter.com">Powered by Puter</a>
+    </footer>
+
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+      (async () => {
+        const out = document.getElementById("out");
+        try {
+          const reply = await puter.ai.chat(
+            "Say hello in one short sentence and name one Puter.js capability.",
+            { model: "gpt-5-nano" }
+          );
+          const text =
+            typeof reply === "string"
+              ? reply
+              : reply?.message?.content || JSON.stringify(reply, null, 2);
+          out.textContent = text;
+
+          await puter.fs.write(
+            "hermes-puter-hello.txt",
+            "Written by the Hermes Puter skill template.\n"
+          );
+          out.textContent += "\n\nAlso wrote hermes-puter-hello.txt via puter.fs.write.";
+        } catch (err) {
+          out.textContent = String(err);
+        }
+      })();
+    </script>
+  </body>
+</html>
