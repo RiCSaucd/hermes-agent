@@ -221,6 +221,7 @@ hermes skills uninstall <skill-name>
 | Skill | Description |
 |-------|-------------|
 | [**page-agent**](/docs/user-guide/skills/optional/web-development/web-development-page-agent) | Embed alibaba/page-agent into your own web application — a pure-JavaScript in-page GUI agent that ships as a single &lt;script> tag or npm package and lets end-users of your site drive the UI with natural language ("click login, fill userna... |
+| [**puter**](/docs/user-guide/skills/optional/web-development/web-development-puter) | Build keyless Puter.js apps with cloud AI and storage. |
 
 ---
 
